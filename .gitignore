@@ -24,3 +24,23 @@ dist-ssr
 *.sw?
 
 .env
+
+# TypeScript
+*.tsbuildinfo
+
+# Prettier
+.prettier-cache
+
+# Test coverage
+coverage
+*.lcov
+
+# Environment variants
+.env.*
+!.env.example
+
+# Misc
+.cache
+.eslintcache
+*.tmp
+Thumbs.db
