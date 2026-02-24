@@ -71,6 +71,15 @@ export interface SearchParams {
   service_area?: string;
   genre?: string;
   budget?: string;
+  keyword?: string;
+  wifi?: boolean;
+  private_room?: boolean;
+  non_smoking?: boolean;
+  lunch?: boolean;
+  midnight?: boolean;
+  english?: boolean;
+  card?: boolean;
+  parking?: boolean;
   count?: number;
   start?: number;
 }
@@ -78,6 +87,7 @@ export interface SearchParams {
 export async function searchRestaurants(
   params: SearchParams,
 ): Promise<HotPepperResponse> {
+  const flag = (v?: boolean) => (v ? "1" : undefined);
   const query = new URLSearchParams({
     key: API_KEY,
     format: "json",
@@ -86,6 +96,15 @@ export async function searchRestaurants(
     ...(params.service_area && { service_area: params.service_area }),
     ...(params.genre && { genre: params.genre }),
     ...(params.budget && { budget: params.budget }),
+    ...(params.keyword && { keyword: params.keyword }),
+    ...(flag(params.wifi) && { wifi: "1" }),
+    ...(flag(params.private_room) && { private_room: "1" }),
+    ...(flag(params.non_smoking) && { non_smoking: "1" }),
+    ...(flag(params.lunch) && { lunch: "1" }),
+    ...(flag(params.midnight) && { midnight: "1" }),
+    ...(flag(params.english) && { english: "1" }),
+    ...(flag(params.card) && { card: "1" }),
+    ...(flag(params.parking) && { parking: "1" }),
   });
 
   const res = await fetch(`${BASE_URL}?${query.toString()}`);

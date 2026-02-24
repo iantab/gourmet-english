@@ -161,6 +161,185 @@
 }
 
 /* ============================================================
+   Refine Results filter strip
+   ============================================================ */
+
+.filter-strip {
+  background: #fff;
+  border: 1.5px solid #e8e0d8;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.filter-strip-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.filter-strip-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #888;
+}
+
+.filter-active-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: #c0392b;
+  color: #fff;
+  letter-spacing: 0.04em;
+}
+
+/* Keyword search row */
+.filter-keyword-form {
+  width: 100%;
+}
+
+.filter-keyword-wrap {
+  display: flex;
+  align-items: center;
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+  transition: border-color 0.15s;
+  max-width: 480px;
+}
+
+.filter-keyword-wrap:focus-within {
+  border-color: #c0392b;
+}
+
+.filter-keyword-icon {
+  padding: 0 0.5rem 0 0.75rem;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.filter-keyword-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 0.875rem;
+  font-family: inherit;
+  color: #1a1a1a;
+  padding: 0.55rem 0.25rem;
+  background: transparent;
+  min-width: 0;
+}
+
+.filter-keyword-input::placeholder {
+  color: #bbb;
+}
+
+.filter-keyword-clear {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #aaa;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.4rem;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.filter-keyword-clear:hover {
+  color: #555;
+}
+
+.filter-keyword-go {
+  background: #f5f0ec;
+  border: none;
+  border-left: 1.5px solid #ddd;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.55rem 0.875rem;
+  cursor: pointer;
+  color: #555;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  transition:
+    background 0.15s,
+    color 0.15s;
+  flex-shrink: 0;
+}
+
+.filter-keyword-go:hover {
+  background: #e8e0d8;
+  color: #1a1a1a;
+}
+
+/* Amenity chip row */
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.875rem;
+  border-radius: 20px;
+  border: 1.5px solid #ddd;
+  background: #f8f5f2;
+  color: #555;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s,
+    transform 0.1s;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.filter-chip:hover {
+  border-color: #c0392b;
+  color: #c0392b;
+  background: #fef5f4;
+  transform: translateY(-1px);
+}
+
+.filter-chip-active {
+  background: #c0392b;
+  border-color: #c0392b;
+  color: #fff;
+}
+
+.filter-chip-active:hover {
+  background: #a93226;
+  border-color: #a93226;
+  color: #fff;
+}
+
+.filter-chip-emoji {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.filter-chip-check {
+  font-size: 0.7rem;
+  font-weight: 900;
+  margin-left: 0.1rem;
+  opacity: 0.9;
+}
+
+/* ============================================================
    Empty / loading state
    ============================================================ */
 
