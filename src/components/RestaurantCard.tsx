@@ -1,6 +1,11 @@
 import type { Restaurant } from "../hotpepper";
 import { translateGenre } from "../genres";
 import { budgets } from "../budgets";
+import stationsMap from "../stations.json";
+
+function translateStation(name: string): string {
+  return (stationsMap as Record<string, string>)[name] || name;
+}
 
 function getBudgetName(code: string): string | null {
   return budgets.find((b) => b.code === code)?.name ?? null;
@@ -42,12 +47,7 @@ export function RestaurantCard({ restaurant: r, onClick }: Props) {
         <div className="card-meta">
           {r.station_name && (
             <span className="card-station">
-              <StationIcon /> {r.station_name}
-            </span>
-          )}
-          {r.budget.average && (
-            <span className="card-budget">
-              <YenIcon /> {r.budget.average}
+              <StationIcon /> {translateStation(r.station_name)}
             </span>
           )}
         </div>

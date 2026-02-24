@@ -3,6 +3,11 @@ import type { Restaurant } from "../hotpepper";
 import { translateGenre } from "../genres";
 import { budgets } from "../budgets";
 import { translateToEnglish } from "../translate";
+import stationsMap from "../stations.json";
+
+function translateStation(name: string): string {
+  return (stationsMap as Record<string, string>)[name] || name;
+}
 
 function getBudgetName(code: string): string | null {
   return budgets.find((b) => b.code === code)?.name ?? null;
@@ -241,7 +246,7 @@ export function RestaurantDetail({ restaurant: r, onClose }: Props) {
                       rel="noopener noreferrer"
                       className="detail-link"
                     >
-                      {r.station_name}
+                      {translateStation(r.station_name)}
                     </a>
                   </div>
                 </div>
