@@ -1,3 +1,5 @@
+import type { Lang } from "../context/LanguageContext";
+
 export const genreMap: Record<string, string> = {
   G001: "Izakaya",
   G002: "Dining Bar",
@@ -18,6 +20,11 @@ export const genreMap: Record<string, string> = {
   G015: "Other",
 };
 
-export function translateGenre(code: string): string {
+/**
+ * Returns an English genre label for the given code.
+ * In JA mode, callers should use `r.genre.name` (raw API string) directly
+ * instead of calling this function.
+ */
+export function translateGenre(code: string, _lang: Lang = "en"): string {
   return genreMap[code] ?? code;
 }

@@ -1,7 +1,9 @@
 import stationsMap from "../data/stations.json";
+import type { Lang } from "../context/LanguageContext";
 import { budgets } from "../data/budgets";
 
-export function translateStation(name: string): string {
+export function translateStation(name: string, lang: Lang = "en"): string {
+  if (lang === "ja") return name;
   return (stationsMap as Record<string, string>)[name] || name;
 }
 
@@ -72,7 +74,8 @@ export function parseStatus(raw: string): AmenityStatus {
   return "info";
 }
 
-export function localise(val: string): string {
+export function localise(val: string, lang: Lang = "en"): string {
   if (!val?.trim()) return "";
+  if (lang === "ja") return val.trim();
   return VALUE_MAP[val.trim()] ?? val.trim();
 }

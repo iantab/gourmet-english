@@ -19,7 +19,32 @@
   height: 56px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   flex-shrink: 0;
+}
+
+.lang-toggle-btn {
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-family: inherit;
+  padding: 0.35rem 0.875rem;
+  border-radius: 20px;
+  border: 1.5px solid #ddd;
+  background: #f8f5f2;
+  color: #555;
+  cursor: pointer;
+  letter-spacing: 0.03em;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+  white-space: nowrap;
+}
+
+.lang-toggle-btn:hover {
+  background: #fef5f4;
+  border-color: #c0392b;
+  color: #c0392b;
 }
 
 .app-logo {

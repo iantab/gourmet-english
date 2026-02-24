@@ -3,44 +3,50 @@ import { searchRestaurants, type Restaurant } from "./api/hotpepper";
 import { genreMap } from "./data/genres";
 import { largeServiceAreas } from "./data/areas";
 import { budgets } from "./data/budgets";
+import { type AmenityKey, AMENITY_FILTERS } from "./data/amenities";
 import { RestaurantCard } from "./components/RestaurantCard";
 import { RestaurantDetail } from "./components/RestaurantDetail";
 import { Spinner } from "./components/Spinner";
 import { Pagination } from "./components/Pagination";
+import { useLanguage, type Lang } from "./context/LanguageContext";
+import { t } from "./i18n/strings";
 import "./App.css";
 
 const RESULTS_PER_PAGE = 20;
 // HotPepper API caps results at start + count <= 1000
 const MAX_RESULTS = 1000;
 
-interface AmenityFilter {
-  key:
-    | "wifi"
-    | "private_room"
-    | "non_smoking"
-    | "lunch"
-    | "midnight"
-    | "english"
-    | "card"
-    | "parking";
-  label: string;
-  emoji: string;
+// ── Japanese genre names from the API (for the search form dropdown in JA mode) ──
+// The API returns genre.name on each restaurant, but the search form uses codes.
+// We provide a static JA map that matches the EN one for the dropdown.
+const genreMapJa: Record<string, string> = {
+  G001: "居酒屋",
+  G002: "ダイニングバー・バル",
+  G003: "創作料理",
+  G004: "和食",
+  G005: "洋食",
+  G006: "イタリアン・フレンチ",
+  G007: "中華",
+  G008: "焼肉・ホルモン",
+  G017: "韓国料理",
+  G009: "アジア・エスニック料理",
+  G010: "各国料理",
+  G011: "カラオケ・パーティ",
+  G012: "バー・カクテル",
+  G013: "ラーメン",
+  G016: "お好み焼き・もんじゃ",
+  G014: "カフェ・スイーツ",
+  G015: "その他",
+};
+
+function getGenreLabel(code: string, lang: Lang): string {
+  if (lang === "ja") return genreMapJa[code] ?? code;
+  return genreMap[code] ?? code;
 }
 
-const AMENITY_FILTERS: AmenityFilter[] = [
-  { key: "non_smoking", label: "Non-Smoking", emoji: "🚭" },
-  { key: "english", label: "English OK", emoji: "🇬🇧" },
-  { key: "private_room", label: "Private Room", emoji: "🚪" },
-  { key: "lunch", label: "Lunch", emoji: "☀️" },
-  { key: "midnight", label: "Late Night", emoji: "🌙" },
-  { key: "wifi", label: "Wi-Fi", emoji: "📶" },
-  { key: "card", label: "Card OK", emoji: "💳" },
-  { key: "parking", label: "Parking", emoji: "🅿️" },
-];
-
-type AmenityKey = AmenityFilter["key"];
-
 function App() {
+  const { lang, setLang } = useLanguage();
+
   const [selectedServiceArea, setSelectedServiceArea] = useState("SA11");
   const [selectedGenre, setSelectedGenre] = useState("");
   const [selectedBudget, setSelectedBudget] = useState("");
@@ -60,6 +66,24 @@ function App() {
   );
 
   const keywordInputRef = useRef<HTMLInputElement>(null);
+
+  function resetToHome() {
+    setRestaurants([]);
+    setTotal(null);
+    setCurrentPage(1);
+    setHasSearched(false);
+    setKeyword("");
+    setPendingKeyword("");
+    setActiveAmenities(new Set());
+    setError(null);
+    setSelected(null);
+  }
+
+  function handleToggleLanguage() {
+    const next = lang === "en" ? "ja" : "en";
+    setLang(next);
+    resetToHome();
+  }
 
   async function fetchPage(
     page: number,
@@ -151,15 +175,31 @@ function App() {
     <div className="app">
       <header className="app-header">
         <div className="app-logo">
-          <span className="logo-primary">Hot Pepper</span>
-          <span className="logo-secondary">English</span>
+          {lang === "ja" ? (
+            <>
+              <span className="logo-secondary">Shin</span>
+              <span className="logo-primary">Hot Pepper</span>
+            </>
+          ) : (
+            <>
+              <span className="logo-primary">Hot Pepper</span>
+              <span className="logo-secondary">English</span>
+            </>
+          )}
         </div>
+        <button
+          className="lang-toggle-btn"
+          onClick={handleToggleLanguage}
+          aria-label={`Switch to ${lang === "en" ? "Japanese" : "English"}`}
+        >
+          {t(lang, "nav.toggle")}
+        </button>
       </header>
 
       <div className="search-wrapper">
         <form className="search-form" onSubmit={handleSearch}>
           <div className="search-field">
-            <label className="search-label">Location</label>
+            <label className="search-label">{t(lang, "search.location")}</label>
             <select
               className="search-select"
               value={selectedServiceArea}
@@ -178,29 +218,29 @@ function App() {
           </div>
 
           <div className="search-field">
-            <label className="search-label">Cuisine</label>
+            <label className="search-label">{t(lang, "search.cuisine")}</label>
             <select
               className="search-select"
               value={selectedGenre}
               onChange={(e) => setSelectedGenre(e.target.value)}
             >
-              <option value="">All cuisines</option>
-              {Object.entries(genreMap).map(([code, name]) => (
+              <option value="">{t(lang, "search.cuisine.all")}</option>
+              {Object.entries(genreMap).map(([code]) => (
                 <option key={code} value={code}>
-                  {name}
+                  {getGenreLabel(code, lang)}
                 </option>
               ))}
             </select>
           </div>
 
           <div className="search-field">
-            <label className="search-label">Budget</label>
+            <label className="search-label">{t(lang, "search.budget")}</label>
             <select
               className="search-select"
               value={selectedBudget}
               onChange={(e) => setSelectedBudget(e.target.value)}
             >
-              <option value="">Any budget</option>
+              <option value="">{t(lang, "search.budget.any")}</option>
               {budgets.map((b) => (
                 <option key={b.code} value={b.code}>
                   {b.name}
@@ -210,14 +250,16 @@ function App() {
           </div>
 
           <div className="search-field search-field-btn">
-            <label className="search-label search-label-hidden">Search</label>
+            <label className="search-label search-label-hidden">
+              {t(lang, "search.submit")}
+            </label>
             <button type="submit" className="search-btn" disabled={loading}>
               {loading ? (
                 <span className="btn-loading">
-                  <Spinner /> Searching
+                  <Spinner /> {t(lang, "search.submit.loading")}
                 </span>
               ) : (
-                "Search"
+                t(lang, "search.submit")
               )}
             </button>
           </div>
@@ -229,13 +271,18 @@ function App() {
 
         {total !== null && !loading && (
           <p className="results-meta">
-            <strong>{total.toLocaleString()}</strong> restaurants found
+            <strong>{total.toLocaleString()}</strong> {t(lang, "results.found")}
             {total > MAX_RESULTS && (
-              <span> · showing first {MAX_RESULTS.toLocaleString()}</span>
+              <span>
+                {" "}
+                · {t(lang, "results.showing_first")}{" "}
+                {MAX_RESULTS.toLocaleString()}
+              </span>
             )}
             <span className="results-page-info">
               {" "}
-              — page {currentPage} of {totalPages}
+              — {t(lang, "results.page")} {currentPage} {t(lang, "results.of")}{" "}
+              {totalPages}
             </span>
           </p>
         )}
@@ -244,10 +291,12 @@ function App() {
         {hasSearched && !loading && total !== null && (
           <div className="filter-strip">
             <div className="filter-strip-header">
-              <span className="filter-strip-title">Refine Results</span>
+              <span className="filter-strip-title">
+                {t(lang, "filter.refine")}
+              </span>
               {activeFilterCount > 0 && (
                 <span className="filter-active-badge">
-                  {activeFilterCount} active
+                  {activeFilterCount} {t(lang, "filter.active")}
                 </span>
               )}
             </div>
@@ -263,7 +312,7 @@ function App() {
                   ref={keywordInputRef}
                   className="filter-keyword-input"
                   type="text"
-                  placeholder="Keyword (e.g. sushi, terrace, view…)"
+                  placeholder={t(lang, "filter.keyword.placeholder")}
                   value={pendingKeyword}
                   onChange={(e) => setPendingKeyword(e.target.value)}
                 />
@@ -278,15 +327,16 @@ function App() {
                   </button>
                 )}
                 <button type="submit" className="filter-keyword-go">
-                  Apply
+                  {t(lang, "filter.keyword.apply")}
                 </button>
               </div>
             </form>
 
             {/* Amenity chips */}
             <div className="filter-chips">
-              {AMENITY_FILTERS.map(({ key, label, emoji }) => {
+              {AMENITY_FILTERS.map(({ key, label, labelJa, emoji }) => {
                 const active = activeAmenities.has(key);
+                const chipLabel = lang === "ja" ? labelJa : label;
                 return (
                   <button
                     key={key}
@@ -295,7 +345,7 @@ function App() {
                     onClick={() => toggleAmenity(key)}
                   >
                     <span className="filter-chip-emoji">{emoji}</span>
-                    {label}
+                    {chipLabel}
                     {active && <span className="filter-chip-check">✓</span>}
                   </button>
                 );
@@ -307,10 +357,8 @@ function App() {
         {!loading && total === null && restaurants.length === 0 && (
           <div className="empty-state">
             <div className="empty-icon">🍜</div>
-            <p className="empty-title">Discover restaurants in Japan</p>
-            <p className="empty-sub">
-              Filter by location, cuisine, and budget to get started
-            </p>
+            <p className="empty-title">{t(lang, "empty.title")}</p>
+            <p className="empty-sub">{t(lang, "empty.sub")}</p>
           </div>
         )}
 
@@ -319,7 +367,7 @@ function App() {
             <div className="empty-icon">
               <Spinner size={36} />
             </div>
-            <p className="empty-title">Finding restaurants…</p>
+            <p className="empty-title">{t(lang, "empty.loading")}</p>
           </div>
         )}
 

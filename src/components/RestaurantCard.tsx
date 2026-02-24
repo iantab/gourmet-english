@@ -3,6 +3,8 @@ import { translateGenre } from "../data/genres";
 import { formatBudgetAverage } from "../data/budgets";
 import { toRomaji } from "../utils/romanise";
 import { translateStation, getBudgetName, parseStatus } from "../utils/helpers";
+import { useLanguage } from "../context/LanguageContext";
+import { t } from "../i18n/strings";
 
 interface Props {
   restaurant: Restaurant;
@@ -10,6 +12,9 @@ interface Props {
 }
 
 export function RestaurantCard({ restaurant: r, onClick }: Props) {
+  const { lang } = useLanguage();
+  const isJa = lang === "ja";
+
   const romaji = r.name_kana ? toRomaji(r.name_kana) : null;
 
   const hasEnglishMenu = parseStatus(r.english) === "yes";
@@ -21,6 +26,14 @@ export function RestaurantCard({ restaurant: r, onClick }: Props) {
   const budget =
     getBudgetName(r.budget?.code) ?? formatBudgetAverage(r.budget?.average);
 
+  const genreLabel = isJa ? r.genre.name : translateGenre(r.genre.code);
+  const subGenreLabel = isJa
+    ? r.sub_genre?.name
+    : r.sub_genre?.code
+      ? translateGenre(r.sub_genre.code)
+      : null;
+  const stationLabel = isJa ? r.station_name : translateStation(r.station_name);
+
   return (
     <button className="restaurant-card" onClick={onClick}>
       <div className="card-image-wrapper">
@@ -30,41 +43,51 @@ export function RestaurantCard({ restaurant: r, onClick }: Props) {
           <div className="card-image-placeholder">🍽️</div>
         )}
         <div className="card-tags">
-          <span className="tag tag-genre">{translateGenre(r.genre.code)}</span>
-          {r.sub_genre?.code && (
-            <span className="tag tag-subgenre">
-              {translateGenre(r.sub_genre.code)}
-            </span>
+          <span className="tag tag-genre">{genreLabel}</span>
+          {subGenreLabel && (
+            <span className="tag tag-subgenre">{subGenreLabel}</span>
           )}
         </div>
       </div>
       <div className="card-body">
         <h3 className="card-name">{r.name}</h3>
-        {romaji && <p className="card-romaji">{romaji}</p>}
+        {/* Romaji only shown in English mode */}
+        {!isJa && romaji && <p className="card-romaji">{romaji}</p>}
 
         <div className="card-meta">
           {r.station_name && (
-            <span className="card-station">
-              🚉 {translateStation(r.station_name)}
-            </span>
+            <span className="card-station">🚉 {stationLabel}</span>
           )}
           {budget && <span className="card-budget">💴 {budget}</span>}
-          {r.lunch === "あり" && <span className="card-lunch">☀️ Lunch</span>}
+          {r.lunch === "あり" && (
+            <span className="card-lunch">{t(lang, "card.lunch")}</span>
+          )}
         </div>
 
         <div className="card-badges">
-          {hasEnglishMenu && (
-            <span className="badge badge-green">🌐 English menu</span>
+          {/* Hidden in JA mode: not relevant for Japanese audience */}
+          {!isJa && hasEnglishMenu && (
+            <span className="badge badge-green">
+              {t(lang, "badge.english_menu")}
+            </span>
           )}
-          {hasWifi && <span className="badge badge-blue">📶 WiFi</span>}
+          {hasWifi && (
+            <span className="badge badge-blue">{t(lang, "badge.wifi")}</span>
+          )}
           {isNonSmoking && (
-            <span className="badge badge-gray">🚭 Non-smoking</span>
+            <span className="badge badge-gray">
+              {t(lang, "badge.non_smoking")}
+            </span>
           )}
           {hasPrivateRoom && (
-            <span className="badge badge-gray">🚪 Private room</span>
+            <span className="badge badge-gray">
+              {t(lang, "badge.private_room")}
+            </span>
           )}
           {hasFreedrink && (
-            <span className="badge badge-purple">🍺 All-you-can-drink</span>
+            <span className="badge badge-purple">
+              {t(lang, "badge.free_drink")}
+            </span>
           )}
         </div>
       </div>
