@@ -1,5 +1,8 @@
 const API_KEY = import.meta.env.VITE_HOT_PEPPER_KEY as string;
-const BASE_URL = "/api/hotpepper/";
+// In production (GitHub Pages), set VITE_API_BASE_URL to your CORS proxy URL
+// (e.g. a Cloudflare Worker). In development the Vite proxy handles /api/hotpepper.
+const BASE_URL =
+  (import.meta.env.VITE_API_BASE_URL as string) || "/api/hotpepper/";
 
 export interface Restaurant {
   id: string;

@@ -4,6 +4,18 @@ export interface Budget {
   name: string;
 }
 
+/**
+ * Formats a raw budget average string from the API (e.g. "3000円" or "～3000円")
+ * into a readable English format like "¥3,000".
+ * Falls back to the original string if parsing fails.
+ */
+export function formatBudgetAverage(raw: string): string {
+  if (!raw?.trim()) return raw;
+  const match = raw.replace(/[～〜]/g, "").match(/(\d+)/);
+  if (!match) return raw;
+  return `¥${Number(match[1]).toLocaleString()}`;
+}
+
 export const budgets: Budget[] = [
   { code: "B009", name: "Under ¥500" },
   { code: "B010", name: "¥501 – ¥1,000" },

@@ -1,91 +1,20 @@
 import { useEffect, useState } from "react";
-import type { Restaurant } from "../hotpepper";
-import { translateGenre } from "../genres";
-import { budgets } from "../budgets";
-import { translateToEnglish } from "../translate";
-import stationsMap from "../stations.json";
-
-function translateStation(name: string): string {
-  return (stationsMap as Record<string, string>)[name] || name;
-}
-
-function getBudgetName(code: string): string | null {
-  return budgets.find((b) => b.code === code)?.name ?? null;
-}
+import type { Restaurant } from "../api/hotpepper";
+import { translateGenre } from "../data/genres";
+import { formatBudgetAverage } from "../data/budgets";
+import { translateAll } from "../utils/translate";
+import { toRomaji } from "../utils/romanise";
+import {
+  translateStation,
+  getBudgetName,
+  VALUE_MAP,
+  parseStatus,
+  localise,
+} from "../utils/helpers";
 
 interface Props {
   restaurant: Restaurant;
   onClose: () => void;
-}
-
-// ── Value normalisation ──────────────────────────────────────────────────────
-
-const VALUE_MAP: Record<string, string> = {
-  あり: "Available",
-  なし: "Not available",
-  未確認: "Unconfirmed",
-  利用可: "Accepted",
-  利用不可: "Not accepted",
-  営業している: "Yes",
-  営業していない: "No",
-  貸切可: "Available",
-  貸切不可: "Not available",
-  応相談: "By arrangement",
-  全席禁煙: "Fully non-smoking",
-  全席喫煙可: "Smoking allowed throughout",
-  禁煙席あり: "Non-smoking section available",
-  喫煙席あり: "Smoking section available",
-  分煙: "Smoking/non-smoking sections",
-  お子様連れ歓迎: "Children welcome",
-  お子様連れOK: "Children welcome",
-  お子様連れ禁止: "No children",
-  可: "Yes",
-  不可: "No",
-  OK: "Yes",
-  NG: "No",
-};
-
-function localise(val: string): string {
-  if (!val?.trim()) return "";
-  return VALUE_MAP[val.trim()] ?? val.trim();
-}
-
-type AmenityStatus = "yes" | "no" | "info" | null;
-
-function parseStatus(raw: string): AmenityStatus {
-  if (!raw?.trim()) return null;
-  const v = raw.trim();
-  const mapped = VALUE_MAP[v];
-  if (
-    mapped === "Available" ||
-    mapped === "Accepted" ||
-    mapped === "Yes" ||
-    mapped === "Children welcome"
-  )
-    return "yes";
-  if (
-    mapped === "Not available" ||
-    mapped === "Not accepted" ||
-    mapped === "No" ||
-    mapped === "No children"
-  )
-    return "no";
-  if (mapped) return "info";
-  if (
-    v.includes("あり") ||
-    v.includes("可") ||
-    v.includes("OK") ||
-    v.includes("歓迎")
-  )
-    return "yes";
-  if (
-    v.includes("なし") ||
-    v.includes("不可") ||
-    v.includes("禁止") ||
-    v.includes("NG")
-  )
-    return "no";
-  return "info";
 }
 
 // ── Amenity definitions ───────────────────────────────────────────────────────
@@ -122,43 +51,32 @@ function buildAmenities(r: Restaurant): AmenityDef[] {
   ].filter((a) => !!a.value?.trim());
 }
 
-// ── Translate button ──────────────────────────────────────────────────────────
+// ── Translated field (shows skeleton while translating) ───────────────────────
 
-interface TranslateFieldProps {
-  text: string;
-}
-
-function TranslateField({ text }: TranslateFieldProps) {
-  const [translated, setTranslated] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  async function handle() {
-    setBusy(true);
-    const t = await translateToEnglish(text);
-    setTranslated(t);
-    setBusy(false);
+function TField({
+  original,
+  translations,
+}: {
+  original: string;
+  translations: Map<string, string>;
+}) {
+  if (!original?.trim()) return null;
+  const translated = translations.get(original);
+  if (translated === undefined) {
+    return <span className="translate-skeleton" />;
   }
-
-  if (translated) {
-    return <div className="detail-value translated">{translated}</div>;
-  }
-
-  return (
-    <button className="translate-btn" onClick={handle} disabled={busy}>
-      {busy ? (
-        <span className="btn-loading">
-          <Spinner /> Translating…
-        </span>
-      ) : (
-        "Translate"
-      )}
-    </button>
-  );
+  return <span>{translated}</span>;
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function RestaurantDetail({ restaurant: r, onClose }: Props) {
+  const [translations, setTranslations] = useState<Map<string, string>>(
+    new Map(),
+  );
+  const [showMap, setShowMap] = useState(false);
+  const [copiedAddress, setCopiedAddress] = useState(false);
+
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -171,9 +89,45 @@ export function RestaurantDetail({ restaurant: r, onClose }: Props) {
     };
   }, [onClose]);
 
+  // Auto-translate all Japanese text fields when the modal opens
+  useEffect(() => {
+    // Amenity values not covered by the static VALUE_MAP need live translation
+    const unknownAmenityValues = buildAmenities(r)
+      .map((a) => a.value.trim())
+      .filter((v) => !(v in VALUE_MAP));
+
+    const fields = [
+      r.access,
+      r.open,
+      r.close,
+      r.catch,
+      r.other_memo,
+      r.address,
+      ...unknownAmenityValues,
+    ].filter(Boolean);
+
+    if (fields.length === 0) return;
+
+    translateAll(fields).then((map) => {
+      setTranslations(map);
+    });
+  }, [r.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const heroSrc = r.photo?.pc?.l || r.photo?.mobile?.l || "";
+  const romaji = r.name_kana ? toRomaji(r.name_kana) : null;
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${r.name} ${r.address}`)}`;
+  const mapsEmbedUrl =
+    r.lat && r.lng
+      ? `https://maps.google.com/maps?q=${r.lat},${r.lng}&z=16&output=embed`
+      : null;
   const amenities = buildAmenities(r);
+
+  function handleCopyAddress() {
+    navigator.clipboard.writeText(r.address).then(() => {
+      setCopiedAddress(true);
+      setTimeout(() => setCopiedAddress(false), 2000);
+    });
+  }
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -201,7 +155,8 @@ export function RestaurantDetail({ restaurant: r, onClose }: Props) {
             )}
             {r.budget?.code && (
               <span className="tag tag-budget">
-                {getBudgetName(r.budget.code) ?? r.budget.average}
+                {getBudgetName(r.budget.code) ??
+                  formatBudgetAverage(r.budget.average)}
               </span>
             )}
             {r.lunch === "あり" && (
@@ -211,10 +166,17 @@ export function RestaurantDetail({ restaurant: r, onClose }: Props) {
 
           {/* Name */}
           <h2 className="modal-name">{r.name}</h2>
+          {romaji && <p className="modal-romaji">{romaji}</p>}
           {r.name_kana && <p className="modal-name-kana">{r.name_kana}</p>}
 
-          {/* Catch phrase */}
-          {r.catch && <p className="modal-catch">&ldquo;{r.catch}&rdquo;</p>}
+          {/* Catch phrase — auto-translated */}
+          {r.catch && (
+            <p className="modal-catch">
+              &ldquo;
+              <TField original={r.catch} translations={translations} />
+              &rdquo;
+            </p>
+          )}
 
           {/* ── Location ─────────────────────────────────────────── */}
           <section className="modal-section">
@@ -222,16 +184,30 @@ export function RestaurantDetail({ restaurant: r, onClose }: Props) {
             <div className="detail-list">
               <div className="detail-row">
                 <span className="detail-icon">📍</span>
-                <div>
+                <div className="detail-row-content">
                   <div className="detail-label">Address</div>
-                  <a
-                    href={mapsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="detail-link"
-                  >
-                    {r.address}
-                  </a>
+                  <div className="detail-address-row">
+                    <a
+                      href={mapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="detail-link"
+                    >
+                      <TField
+                        original={r.address}
+                        translations={translations}
+                      />
+                    </a>
+                    <button
+                      className="copy-btn"
+                      onClick={handleCopyAddress}
+                      title="Copy Japanese address (for taxi / navigation)"
+                      aria-label="Copy address"
+                    >
+                      {copiedAddress ? "✓" : "📋"}
+                    </button>
+                  </div>
+                  <div className="detail-address-jp">{r.address}</div>
                 </div>
               </div>
 
@@ -257,11 +233,37 @@ export function RestaurantDetail({ restaurant: r, onClose }: Props) {
                   <span className="detail-icon">🗺️</span>
                   <div>
                     <div className="detail-label">Access Directions</div>
-                    <TranslateField text={r.access} />
+                    <div className="detail-value">
+                      <TField original={r.access} translations={translations} />
+                    </div>
                   </div>
                 </div>
               )}
             </div>
+
+            {/* Map embed toggle */}
+            {mapsEmbedUrl && (
+              <div className="map-toggle-wrapper">
+                <button
+                  className="map-toggle-btn"
+                  onClick={() => setShowMap((v) => !v)}
+                >
+                  {showMap ? "Hide map ▲" : "Show map ▼"}
+                </button>
+                {showMap && (
+                  <div className="map-embed-wrapper">
+                    <iframe
+                      title="Restaurant location"
+                      src={mapsEmbedUrl}
+                      className="map-embed"
+                      allowFullScreen
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
           </section>
 
           {/* ── Hours ────────────────────────────────────────────── */}
@@ -274,7 +276,9 @@ export function RestaurantDetail({ restaurant: r, onClose }: Props) {
                     <span className="detail-icon">🕐</span>
                     <div>
                       <div className="detail-label">Open</div>
-                      <TranslateField text={r.open} />
+                      <div className="detail-value">
+                        <TField original={r.open} translations={translations} />
+                      </div>
                     </div>
                   </div>
                 )}
@@ -283,7 +287,12 @@ export function RestaurantDetail({ restaurant: r, onClose }: Props) {
                     <span className="detail-icon">🔒</span>
                     <div>
                       <div className="detail-label">Closed</div>
-                      <TranslateField text={r.close} />
+                      <div className="detail-value">
+                        <TField
+                          original={r.close}
+                          translations={translations}
+                        />
+                      </div>
                     </div>
                   </div>
                 )}
@@ -320,7 +329,7 @@ export function RestaurantDetail({ restaurant: r, onClose }: Props) {
                 <tbody>
                   {amenities.map((a) => {
                     const status = parseStatus(a.value);
-                    const display = localise(a.value);
+                    const isKnown = a.value.trim() in VALUE_MAP;
                     return (
                       <tr
                         key={a.label}
@@ -330,7 +339,16 @@ export function RestaurantDetail({ restaurant: r, onClose }: Props) {
                           <span className="feat-icon">{a.icon}</span>
                           {a.label}
                         </td>
-                        <td className="feat-value">{display}</td>
+                        <td className="feat-value">
+                          {isKnown ? (
+                            localise(a.value)
+                          ) : (
+                            <TField
+                              original={a.value.trim()}
+                              translations={translations}
+                            />
+                          )}
+                        </td>
                       </tr>
                     );
                   })}
@@ -343,7 +361,9 @@ export function RestaurantDetail({ restaurant: r, onClose }: Props) {
           {r.other_memo && (
             <section className="modal-section">
               <h3 className="section-title">Notes</h3>
-              <p className="detail-value">{r.other_memo}</p>
+              <p className="detail-value">
+                <TField original={r.other_memo} translations={translations} />
+              </p>
             </section>
           )}
 
@@ -358,7 +378,7 @@ export function RestaurantDetail({ restaurant: r, onClose }: Props) {
                     <div className="detail-label">Lunch</div>
                     <div className="detail-value">
                       {getBudgetName(r.budget_lunch.code) ??
-                        r.budget_lunch.name}
+                        formatBudgetAverage(r.budget_lunch.name)}
                     </div>
                   </div>
                 </div>
@@ -394,24 +414,6 @@ function CloseIcon() {
       strokeLinejoin="round"
     >
       <path d="M18 6L6 18M6 6l12 12" />
-    </svg>
-  );
-}
-
-function Spinner() {
-  return (
-    <svg
-      className="spin"
-      width="13"
-      height="13"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
     </svg>
   );
 }

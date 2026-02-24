@@ -1,15 +1,8 @@
-import type { Restaurant } from "../hotpepper";
-import { translateGenre } from "../genres";
-import { budgets } from "../budgets";
-import stationsMap from "../stations.json";
-
-function translateStation(name: string): string {
-  return (stationsMap as Record<string, string>)[name] || name;
-}
-
-function getBudgetName(code: string): string | null {
-  return budgets.find((b) => b.code === code)?.name ?? null;
-}
+import type { Restaurant } from "../api/hotpepper";
+import { translateGenre } from "../data/genres";
+import { formatBudgetAverage } from "../data/budgets";
+import { toRomaji } from "../utils/romanise";
+import { translateStation, getBudgetName, parseStatus } from "../utils/helpers";
 
 interface Props {
   restaurant: Restaurant;
@@ -17,6 +10,17 @@ interface Props {
 }
 
 export function RestaurantCard({ restaurant: r, onClick }: Props) {
+  const romaji = r.name_kana ? toRomaji(r.name_kana) : null;
+
+  const hasEnglishMenu = parseStatus(r.english) === "yes";
+  const hasWifi = parseStatus(r.wifi) === "yes";
+  const isNonSmoking =
+    parseStatus(r.non_smoking) !== "no" && parseStatus(r.non_smoking) !== null;
+  const hasPrivateRoom = parseStatus(r.private_room) === "yes";
+  const hasFreedrink = parseStatus(r.free_drink) === "yes";
+  const budget =
+    getBudgetName(r.budget?.code) ?? formatBudgetAverage(r.budget?.average);
+
   return (
     <button className="restaurant-card" onClick={onClick}>
       <div className="card-image-wrapper">
@@ -32,61 +36,38 @@ export function RestaurantCard({ restaurant: r, onClick }: Props) {
               {translateGenre(r.sub_genre.code)}
             </span>
           )}
-          {r.budget?.code && (
-            <span className="tag tag-budget">
-              {getBudgetName(r.budget.code) ?? r.budget.average}
-            </span>
-          )}
-          {r.lunch === "あり" && (
-            <span className="tag tag-lunch">Lunch ☀️</span>
-          )}
         </div>
       </div>
       <div className="card-body">
         <h3 className="card-name">{r.name}</h3>
+        {romaji && <p className="card-romaji">{romaji}</p>}
+
         <div className="card-meta">
           {r.station_name && (
             <span className="card-station">
-              <StationIcon /> {translateStation(r.station_name)}
+              🚉 {translateStation(r.station_name)}
             </span>
+          )}
+          {budget && <span className="card-budget">💴 {budget}</span>}
+          {r.lunch === "あり" && <span className="card-lunch">☀️ Lunch</span>}
+        </div>
+
+        <div className="card-badges">
+          {hasEnglishMenu && (
+            <span className="badge badge-green">🌐 English menu</span>
+          )}
+          {hasWifi && <span className="badge badge-blue">📶 WiFi</span>}
+          {isNonSmoking && (
+            <span className="badge badge-gray">🚭 Non-smoking</span>
+          )}
+          {hasPrivateRoom && (
+            <span className="badge badge-gray">🚪 Private room</span>
+          )}
+          {hasFreedrink && (
+            <span className="badge badge-purple">🍺 All-you-can-drink</span>
           )}
         </div>
       </div>
     </button>
-  );
-}
-
-function StationIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <rect x="4" y="3" width="16" height="14" rx="2" />
-      <path d="M4 11h16M12 3v8M8 21l4-4 4 4" />
-    </svg>
-  );
-}
-
-function YenIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M12 2L6 8m6-6l6 6M12 2v20M6 12h12M6 16h12" />
-    </svg>
   );
 }
