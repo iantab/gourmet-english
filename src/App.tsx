@@ -151,7 +151,7 @@ function App() {
     <div className="app">
       <header className="app-header">
         <div className="app-logo">
-          <span className="logo-primary">Gourmet</span>
+          <span className="logo-primary">Hot Pepper</span>
           <span className="logo-secondary">English</span>
         </div>
       </header>

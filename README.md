@@ -1,4 +1,4 @@
-# Gourmet English 🍽️
+# Hot Pepper English 🍽️
 
 An English-language restaurant discovery app for Japan, powered by the HotPepper Gourmet API. Search for restaurants across Japan by prefecture, cuisine, and budget — and view detailed information in English.
 
