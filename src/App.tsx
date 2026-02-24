@@ -1,43 +1,38 @@
 import { useState } from "react";
 import { searchRestaurants, type Restaurant } from "./hotpepper";
-import { translateGenre } from "./genres";
-import { translateToEnglish } from "./translate";
+import { genreMap } from "./genres";
+import { largeServiceAreas } from "./areas";
+import { budgets } from "./budgets";
+import { RestaurantCard } from "./components/RestaurantCard";
+import { RestaurantDetail } from "./components/RestaurantDetail";
 import "./App.css";
 
+const RESULTS_PER_PAGE = 20;
+// HotPepper API caps results at start + count <= 1000
+const MAX_RESULTS = 1000;
+
 function App() {
-  const [keyword, setKeyword] = useState("");
+  const [selectedServiceArea, setSelectedServiceArea] = useState("SA11");
+  const [selectedGenre, setSelectedGenre] = useState("");
+  const [selectedBudget, setSelectedBudget] = useState("");
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState<number | null>(null);
-  const [translatedAccess, setTranslatedAccess] = useState<Map<string, string>>(
-    new Map(),
-  );
-  const [translatingIds, setTranslatingIds] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selected, setSelected] = useState<Restaurant | null>(null);
 
-  async function handleTranslateAccess(id: string, access: string) {
-    setTranslatingIds((prev) => new Set(prev).add(id));
-    const translated = await translateToEnglish(access);
-    setTranslatedAccess((prev) => new Map(prev).set(id, translated));
-    setTranslatingIds((prev) => {
-      const s = new Set(prev);
-      s.delete(id);
-      return s;
-    });
-  }
-
-  async function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
-    if (!keyword.trim()) return;
+  async function fetchPage(page: number) {
     setLoading(true);
     setError(null);
     setRestaurants([]);
-    setTotal(null);
     try {
       const data = await searchRestaurants({
-        keyword,
-        large_area: "Z011",
-        count: 10,
+        service_area: selectedServiceArea,
+        genre: selectedGenre || undefined,
+        budget: selectedBudget || undefined,
+        count: RESULTS_PER_PAGE,
+        start: (page - 1) * RESULTS_PER_PAGE + 1,
       });
       if (data.results.error) {
         setError(data.results.error[0].message);
@@ -52,172 +47,242 @@ function App() {
     }
   }
 
-  return (
-    <div
-      style={{
-        maxWidth: 800,
-        margin: "0 auto",
-        padding: "2rem",
-        fontFamily: "sans-serif",
-      }}
-    >
-      <h1>🍜 Gourmet English – HotPepper API Test</h1>
-      <form
-        onSubmit={handleSearch}
-        style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}
-      >
-        <input
-          type="text"
-          value={keyword}
-          onChange={(e) => setKeyword(e.target.value)}
-          placeholder="Search restaurants (e.g. sushi, ramen...)"
-          style={{ flex: 1, padding: "0.5rem", fontSize: "1rem" }}
-        />
-        <button
-          type="submit"
-          disabled={loading}
-          style={{ padding: "0.5rem 1rem", fontSize: "1rem" }}
-        >
-          {loading ? "Searching…" : "Search"}
-        </button>
-      </form>
+  async function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    setCurrentPage(1);
+    await fetchPage(1);
+  }
 
-      {error && <p style={{ color: "red" }}>Error: {error}</p>}
-      {total !== null && (
-        <p>
-          Found <strong>{total}</strong> results (showing {restaurants.length})
-        </p>
+  async function handlePageChange(page: number) {
+    setCurrentPage(page);
+    await fetchPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  const availableResults = Math.min(total ?? 0, MAX_RESULTS);
+  const totalPages = Math.ceil(availableResults / RESULTS_PER_PAGE);
+
+  return (
+    <div className="app">
+      <header className="app-header">
+        <div className="app-logo">
+          <span className="logo-primary">Gourmet</span>
+          <span className="logo-secondary">English</span>
+        </div>
+      </header>
+
+      <div className="search-wrapper">
+        <form className="search-form" onSubmit={handleSearch}>
+          <div className="search-field">
+            <label className="search-label">Location</label>
+            <select
+              className="search-select"
+              value={selectedServiceArea}
+              onChange={(e) => setSelectedServiceArea(e.target.value)}
+            >
+              {largeServiceAreas.map((group) => (
+                <optgroup key={group.name} label={group.name}>
+                  {group.prefectures.map((pref) => (
+                    <option key={pref.code} value={pref.code}>
+                      {pref.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+
+          <div className="search-field">
+            <label className="search-label">Cuisine</label>
+            <select
+              className="search-select"
+              value={selectedGenre}
+              onChange={(e) => setSelectedGenre(e.target.value)}
+            >
+              <option value="">All cuisines</option>
+              {Object.entries(genreMap).map(([code, name]) => (
+                <option key={code} value={code}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="search-field">
+            <label className="search-label">Budget</label>
+            <select
+              className="search-select"
+              value={selectedBudget}
+              onChange={(e) => setSelectedBudget(e.target.value)}
+            >
+              <option value="">Any budget</option>
+              {budgets.map((b) => (
+                <option key={b.code} value={b.code}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="search-field search-field-btn">
+            <label className="search-label search-label-hidden">Search</label>
+            <button type="submit" className="search-btn" disabled={loading}>
+              {loading ? (
+                <span className="btn-loading">
+                  <Spinner /> Searching
+                </span>
+              ) : (
+                "Search"
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <main className="results-wrapper">
+        {error && <div className="error-msg">{error}</div>}
+
+        {total !== null && !loading && (
+          <p className="results-meta">
+            <strong>{total.toLocaleString()}</strong> restaurants found
+            {total > MAX_RESULTS && (
+              <span> · showing first {MAX_RESULTS.toLocaleString()}</span>
+            )}
+            <span className="results-page-info">
+              {" "}
+              — page {currentPage} of {totalPages}
+            </span>
+          </p>
+        )}
+
+        {!loading && total === null && restaurants.length === 0 && (
+          <div className="empty-state">
+            <div className="empty-icon">🍜</div>
+            <p className="empty-title">Discover restaurants in Japan</p>
+            <p className="empty-sub">
+              Filter by location, cuisine, and budget to get started
+            </p>
+          </div>
+        )}
+
+        {loading && (
+          <div className="empty-state">
+            <div className="empty-icon">
+              <Spinner size={36} />
+            </div>
+            <p className="empty-title">Finding restaurants…</p>
+          </div>
+        )}
+
+        {restaurants.length > 0 && (
+          <>
+            <div className="restaurant-grid">
+              {restaurants.map((r) => (
+                <RestaurantCard
+                  key={r.id}
+                  restaurant={r}
+                  onClick={() => setSelected(r)}
+                />
+              ))}
+            </div>
+
+            {totalPages > 1 && (
+              <Pagination
+                current={currentPage}
+                total={totalPages}
+                onChange={handlePageChange}
+              />
+            )}
+          </>
+        )}
+      </main>
+
+      {selected && (
+        <RestaurantDetail
+          restaurant={selected}
+          onClose={() => setSelected(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function Pagination({
+  current,
+  total,
+  onChange,
+}: {
+  current: number;
+  total: number;
+  onChange: (page: number) => void;
+}) {
+  const pages: (number | "ellipsis-start" | "ellipsis-end")[] = [];
+
+  if (total <= 7) {
+    for (let i = 1; i <= total; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if (current > 3) pages.push("ellipsis-start");
+    const rangeStart = Math.max(2, current - 1);
+    const rangeEnd = Math.min(total - 1, current + 1);
+    for (let i = rangeStart; i <= rangeEnd; i++) pages.push(i);
+    if (current < total - 2) pages.push("ellipsis-end");
+    pages.push(total);
+  }
+
+  return (
+    <nav className="pagination" aria-label="Results pages">
+      <button
+        className="page-btn page-nav"
+        disabled={current === 1}
+        onClick={() => onChange(current - 1)}
+      >
+        ← Prev
+      </button>
+
+      {pages.map((p) =>
+        typeof p === "string" ? (
+          <span key={p} className="page-ellipsis">
+            …
+          </span>
+        ) : (
+          <button
+            key={p}
+            className={`page-btn${p === current ? " page-btn-active" : ""}`}
+            onClick={() => onChange(p)}
+            aria-current={p === current ? "page" : undefined}
+          >
+            {p}
+          </button>
+        ),
       )}
 
-      <ul style={{ listStyle: "none", padding: 0 }}>
-        {restaurants.map((r) => {
-          const isTranslating = translatingIds.has(r.id);
-          const translated = translatedAccess.get(r.id);
-          return (
-            <li
-              key={r.id}
-              style={{
-                display: "flex",
-                gap: "1rem",
-                marginBottom: "1.5rem",
-                borderBottom: "1px solid #eee",
-                paddingBottom: "1rem",
-              }}
-            >
-              {r.photo.mobile.l && (
-                <img
-                  src={r.photo.mobile.l}
-                  alt={r.name}
-                  style={{
-                    width: 100,
-                    height: 100,
-                    objectFit: "cover",
-                    borderRadius: 8,
-                  }}
-                />
-              )}
-              <div>
-                <h3 style={{ margin: 0 }}>
-                  <a href={r.urls.pc} target="_blank" rel="noopener noreferrer">
-                    {r.name}
-                  </a>
-                </h3>
-                <p style={{ margin: "0.25rem 0", color: "#555" }}>
-                  {translateGenre(r.genre.code)} · 📍{" "}
-                  <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${r.name} ${r.address}`)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      backgroundColor: "#fef08a",
-                      color: "#1a1a1a",
-                      textDecoration: "none",
-                      padding: "1px 4px",
-                      borderRadius: 3,
-                      fontWeight: 500,
-                    }}
-                  >
-                    {r.address}
-                  </a>
-                </p>
-                <p
-                  style={{
-                    margin: "0.25rem 0",
-                    color: "#555",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  🚉{" "}
-                  {translated ? (
-                    translated
-                  ) : (
-                    <>
-                      {!isTranslating && (
-                        <button
-                          onClick={() => handleTranslateAccess(r.id, r.access)}
-                          style={{
-                            fontSize: "0.75rem",
-                            padding: "3px 10px",
-                            borderRadius: 4,
-                            border: "none",
-                            background: "#2563eb",
-                            color: "#fff",
-                            cursor: "pointer",
-                            fontWeight: 600,
-                          }}
-                        >
-                          🗺 Directions
-                        </button>
-                      )}
-                      {isTranslating && (
-                        <span
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "0.3rem",
-                            fontSize: "0.85rem",
-                            color: "#888",
-                          }}
-                        >
-                          <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            style={{ animation: "spin 1s linear infinite" }}
-                          >
-                            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-                          </svg>
-                          Translating…
-                        </span>
-                      )}
-                    </>
-                  )}{" "}
-                  · 💴 {r.budget.average}
-                </p>
-                <p style={{ margin: "0.25rem 0", fontSize: "0.9rem" }}>
-                  {r.catch}
-                </p>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+      <button
+        className="page-btn page-nav"
+        disabled={current === total}
+        onClick={() => onChange(current + 1)}
+      >
+        Next →
+      </button>
+    </nav>
+  );
+}
 
-      <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
-    </div>
+function Spinner({ size = 16 }: { size?: number }) {
+  return (
+    <svg
+      className="spin"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+    </svg>
   );
 }
 
