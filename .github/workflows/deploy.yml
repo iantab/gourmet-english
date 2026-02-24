@@ -27,7 +27,7 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          VITE_BASE: /hotpepper/
+          VITE_BASE: /shin-hotpepper/
           VITE_API_BASE_URL: https://corsproxy.io/
           VITE_HOT_PEPPER_KEY: ${{ secrets.VITE_HOT_PEPPER_KEY }}
 

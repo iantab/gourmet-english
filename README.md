@@ -2,7 +2,7 @@
 
 A bilingual restaurant discovery app for Japan, powered by the HotPepper Gourmet API. Switch between English (with auto-translation) and Japanese (raw API data, zero overhead).
 
-🔗 **[https://iantab.github.io/hotpepper/](https://iantab.github.io/hotpepper/)**
+🔗 **[https://iantab.github.io/shin-hotpepper/](https://iantab.github.io/shin-hotpepper/)**
 
 ---
 
