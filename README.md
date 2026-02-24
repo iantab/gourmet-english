@@ -15,7 +15,7 @@ A bilingual restaurant discovery app for Japan, powered by the HotPepper Gourmet
 - 🔍 **Refine results** — narrow down large result sets with amenity chips (Non-Smoking, English OK, Private Room, Lunch, Late Night, Wi-Fi, Card OK, Parking) and a keyword search, all applied server-side via the API
 - 📸 **Restaurant cards** — photo, cuisine tags, budget, station, and lunch availability at a glance
 - 📋 **Detailed view** — hours, address, nearest station, features, capacity, and more
-  - **English mode**: all Japanese text auto-translated via the Google Gemini API
+  - **English mode**: all Japanese text auto-translated via the MyMemory Translation API
   - **Japanese mode**: raw API data displayed instantly — no translation call made
 - 📍 **Google Maps links** — for both the restaurant address and nearest train station
 
@@ -24,7 +24,7 @@ A bilingual restaurant discovery app for Japan, powered by the HotPepper Gourmet
 - [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
 - [Vite](https://vite.dev/)
 - [HotPepper Gourmet Web Service](http://webservice.recruit.co.jp/)
-- [Google Gemini API](https://ai.google.dev/) — live translation of Japanese restaurant details in English mode
+- [MyMemory Translation API](https://mymemory.translated.net/) — free translation of Japanese restaurant details in English mode (no API key required)
 - [corsproxy.io](https://corsproxy.io/) — CORS proxy for GitHub Pages deployment
 
 ## Getting Started
@@ -37,21 +37,19 @@ A bilingual restaurant discovery app for Japan, powered by the HotPepper Gourmet
 3. Create a `.env` file in the project root:
    ```
    VITE_HOT_PEPPER_KEY=your_hotpepper_api_key
-   VITE_GEMINI_KEY=your_gemini_api_key
    ```
 4. Start the dev server:
    ```bash
    npm run dev
    ```
 
-## API Keys
+## API Key
 
-- **HotPepper**: obtain a free key from the [HotPepper Gourmet Web Service](http://webservice.recruit.co.jp/)
-- **Gemini**: obtain a key from [Google AI Studio](https://aistudio.google.com/) — only used in English mode for translating restaurant details
+Obtain a free HotPepper key from the [HotPepper Gourmet Web Service](http://webservice.recruit.co.jp/). Translations in English mode use the [MyMemory API](https://mymemory.translated.net/) which is free and requires no key.
 
 ## Deployment
 
-The app deploys automatically to GitHub Pages on every push to `master` via the included GitHub Actions workflow. Set `VITE_HOT_PEPPER_KEY` and `VITE_GEMINI_KEY` as repository secrets — everything else is configured in the workflow.
+The app deploys automatically to GitHub Pages on every push to `master` via the included GitHub Actions workflow. Set `VITE_HOT_PEPPER_KEY` as a repository secret — everything else is configured in the workflow.
 
 ---
 
