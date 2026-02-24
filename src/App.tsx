@@ -175,17 +175,8 @@ function App() {
     <div className="app">
       <header className="app-header">
         <div className="app-logo">
-          {lang === "ja" ? (
-            <>
-              <span className="logo-secondary">Shin</span>
-              <span className="logo-primary">Hot Pepper</span>
-            </>
-          ) : (
-            <>
-              <span className="logo-primary">Hot Pepper</span>
-              <span className="logo-secondary">English</span>
-            </>
-          )}
+          <span className="logo-secondary">Shin</span>
+          <span className="logo-primary">Hot Pepper</span>
         </div>
         <button
           className="lang-toggle-btn"
